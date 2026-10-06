@@ -6,3 +6,7 @@ TypeScript = JavaScript + a compile-time type system + tools for expressing and 
 
 ## How TS works?
 ![Typescript working](./ss/image.png)
+
+## Type Annotations and Inference
+- Annotation: I will explain (Explicitly mentioning what we will use to TS)
+- Inference: You understand on your own (TS knows what type is used here based on value)
