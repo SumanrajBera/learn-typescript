@@ -296,3 +296,269 @@ This gives us:
 ### Mental Model
 
 `type` = "Define the shape that a value/object should have."
+
+## Type Assertions
+
+Type assertion is a technique used to tell TypeScript **how we want a value to be treated by the type system**.
+
+It does **not** convert or change the actual value at runtime.
+
+### 1. Forceful Type Assertion
+
+Sometimes TypeScript does not know the type we intend to work with. We can use the `as` keyword to tell TypeScript to treat a value as a specific type.
+
+```ts
+let request: any = "42";
+
+// TypeScript cannot provide useful type information
+// because request is `any`.
+let numeric: number = request.length;
+
+// Tell TypeScript to treat request as a string
+numeric = (request as string).length;
+```
+
+Here:
+
+```ts
+request as string
+```
+
+means:
+
+> "TypeScript, treat `request` as a `string` from this point in this expression."
+
+Since strings have a `length` property, TypeScript can provide the appropriate type information.
+
+#### Important
+
+Type assertion does **not** perform runtime validation or conversion.
+
+```ts
+const value = 42 as unknown as string;
+```
+
+This does not turn the number `42` into a string. The runtime value is still a number.
+
+So type assertion should be used when **we already have sufficient knowledge about the value's type**, but TypeScript cannot infer it correctly.
+
+---
+
+### Type Assertion with API / JSON Data
+
+A common situation is receiving data from an external source.
+
+```ts
+type Book = {
+    name: string;
+};
+
+const bookData = '{"name": "Half Girlfriend"}';
+
+const bookObject = JSON.parse(bookData) as Book;
+
+console.log(bookObject.name);
+```
+
+`JSON.parse()` returns `any`, so TypeScript does not know the structure of the parsed object.
+
+By writing:
+
+```ts
+JSON.parse(bookData) as Book
+```
+
+we tell TypeScript:
+
+> "Treat the parsed value as a `Book`."
+
+Now TypeScript knows that `bookObject` has:
+
+```ts
+name: string
+```
+
+#### Important
+
+This still does **not validate** that the JSON actually contains a valid `Book`.
+
+For example:
+
+```ts
+const bookObject = JSON.parse('{"title": "Half Girlfriend"}') as Book;
+```
+
+TypeScript will accept the assertion, even though the runtime object does not contain the required `name` property.
+
+For data coming from untrusted sources such as APIs, validation libraries such as Zod can be used when runtime validation is required.
+
+---
+
+### DOM Type Assertion
+
+TypeScript also provides specific types for DOM elements.
+
+```ts
+const inputElement =
+    document.getElementById("username") as HTMLInputElement;
+```
+
+`getElementById()` returns:
+
+```ts
+HTMLElement | null
+```
+
+TypeScript does not automatically know that the element with the `"username"` ID is specifically an input element.
+
+We can assert:
+
+```ts
+as HTMLInputElement
+```
+
+Now TypeScript knows that we intend to use it as an `HTMLInputElement`.
+
+For example:
+
+```ts
+inputElement.value;
+```
+
+TypeScript can provide the properties and methods available on `HTMLInputElement`.
+
+Again, this does not check the DOM element at runtime. If the element is actually a different type, the assertion does not magically change it.
+
+---
+
+## The `never` Type
+
+`never` represents a situation where **a value can never exist**.
+
+One common use is **exhaustive checking of union types**.
+
+Consider:
+
+```ts
+type Role = "admin" | "user";
+```
+
+There are currently only two possible values:
+
+```text
+"admin"
+"user"
+```
+
+We can handle both:
+
+```ts
+function redirectOnRole(role: Role): void {
+    if (role === "admin") {
+        console.log("Admin Dashboard");
+        return;
+    }
+
+    if (role === "user") {
+        console.log("User Dashboard");
+        return;
+    }
+
+    role;
+}
+```
+
+After the two checks, TypeScript knows that there are no remaining possible values for `role`.
+
+Therefore, in the final section:
+
+```ts
+role;
+```
+
+the type of `role` is:
+
+```ts
+never
+```
+
+The important idea is:
+
+```text
+Role
+ ↓
+"admin" | "user"
+ ↓
+remove "admin"
+ ↓
+"user"
+ ↓
+remove "user"
+ ↓
+never
+```
+
+So `never` can help us detect whether we have handled **every possible case**.
+
+---
+
+### Exhaustive Checking with `never`
+
+A common pattern is to create a function that accepts only `never`:
+
+```ts
+function assertNever(value: never): void {
+    console.log("All roles are checked")
+}
+```
+
+Then:
+
+```ts
+type Role = "admin" | "user";
+
+function redirectOnRole(role: Role): void {
+    if (role === "admin") {
+        console.log("Admin Dashboard");
+        return;
+    }
+
+    if (role === "user") {
+        console.log("User Dashboard");
+        return;
+    }
+
+    assertNever(role);
+}
+```
+
+Because `assertNever()` only accepts `never`, TypeScript verifies that all possible `Role` values have been handled.
+
+This becomes especially useful when the union changes:
+
+```ts
+type Role = "admin" | "user" | "moderator";
+```
+
+Now `"moderator"` has not been handled.
+
+Therefore, at:
+
+```ts
+assertNever(role);
+```
+
+TypeScript will produce an error because `role` is still:
+
+```ts
+"moderator"
+```
+
+rather than:
+
+```ts
+never
+```
+
+This alerts us that we need to add handling for the new role.
+
