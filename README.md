@@ -747,3 +747,301 @@ When reading an optional property, its value may be `undefined`:
 ```ts
 console.log(config1.description); // undefined
 ```
+
+## Objects and Utility Types
+
+### Objects and Type Annotations
+
+When creating objects, we can define the shape of the object using a type annotation. This specifies the properties and the types of values they can contain.
+
+```ts
+let food: {
+    name: string;
+    quantity: number;
+};
+
+food = {
+    name: "Dosa",
+    quantity: 2
+};
+```
+
+Here, `food` must contain a `name` of type `string` and a `quantity` of type `number`.
+
+Defining the object type separately makes it easier to reuse the same structure.
+
+### Type Aliases
+
+A **type alias** allows us to give a name to a type so that we can reuse it throughout our application.
+
+```ts
+type FoodOrder = {
+    id: number;
+    name: string;
+    quantity: number;
+};
+
+const newOrder: FoodOrder = {
+    id: 1233,
+    name: "Chinese",
+    quantity: 1
+};
+```
+
+Instead of repeatedly writing the object's structure, we can use `FoodOrder` wherever that type is needed.
+
+### Nested Objects and Arrays
+
+We can use one type inside another type. This helps us represent more complex data structures.
+
+```ts
+type Transaction = {
+    id: number;
+    date: Date;
+};
+
+type Address = {
+    floor: number;
+    addressLine1: string;
+    addressLine2?: string;
+};
+
+type Account = {
+    username: string;
+    transactions: Transaction[];
+    address: Address;
+};
+```
+
+#### Important points
+
+* `Transaction[]` represents an array of transactions.
+* `address: Address` means the address property must follow the `Address` structure.
+* `addressLine2?: string` makes `addressLine2` optional.
+* `date: Date` expects a JavaScript `Date` object, not an arbitrary date string.
+
+The `?` modifier allows a property to be omitted.
+
+### Structural Typing
+
+TypeScript primarily uses **structural typing**. An object can be assigned to a type when it contains the required properties with compatible types, even if it has additional properties.
+
+```ts
+type Cup = {
+    size: "small" | "medium" | "large";
+};
+
+let mediumCup = {
+    size: "medium" as const,
+    material: "steel",
+    price: 500
+};
+
+let smallCup: Cup = mediumCup;
+
+console.log(smallCup.size); // "medium"
+```
+
+The assignment is valid because `mediumCup.size` has the literal type `"medium"`, which is allowed by `Cup`.
+
+The additional properties, `material` and `price`, do not prevent the assignment.
+
+#### Why use `as const` here?
+
+Without `as const`, TypeScript generally infers the mutable object's `size` property as `string`. That is too broad for `Cup`, which accepts only three specific string literals.
+
+```ts
+size: "medium" as const
+```
+
+This preserves the literal type `"medium"` for that property.
+
+#### Important distinction
+
+After the assignment:
+
+* Both variables reference the same object.
+* The object still contains `size`, `material`, and `price`.
+* TypeScript still treats `smallCup` as type `Cup`.
+* Accessing `smallCup.material` produces a type error because `material` is not declared in `Cup`.
+
+Structural typing is useful when we only need specific properties from an object that may contain additional data.
+
+However, TypeScript does not validate external data at runtime. Use runtime validation when data comes from an API or another untrusted source.
+
+### `Partial<T>`
+
+`Partial<T>` makes every property in a type optional.
+
+```ts
+type PropertyLand = {
+    plotNo: number;
+    address: string;
+};
+
+function updateProperty(updates: Partial<PropertyLand>) {
+    console.log("All the updates", updates);
+}
+
+updateProperty({ address: "Jadunagar Delhi" });
+updateProperty({ plotNo: 5 });
+updateProperty({});
+```
+
+The resulting type is equivalent to:
+
+```ts
+type PropertyUpdate = {
+    plotNo?: number;
+    address?: string;
+};
+```
+
+#### Why is this useful?
+
+When updating a record, we might want to change only one property instead of supplying every property.
+
+For example, a user might update only their address without changing their plot number.
+
+#### Important consideration
+
+An empty object `{}` is valid because all properties are optional. However, it might represent an update request that changes nothing.
+
+If at least one update is required, validate that condition at runtime.
+
+```ts
+function updateProperty(updates: Partial<PropertyLand>) {
+    if (Object.keys(updates).length === 0) {
+        throw new Error("At least one update is required");
+    }
+
+    console.log("All the updates", updates);
+}
+```
+
+### `Required<T>`
+
+`Required<T>` makes every property required, even if the original type marked some properties as optional.
+
+```ts
+type PropertyDraft = {
+    plotNo?: number;
+    address?: string;
+};
+
+function updateByBuilder(updates: Required<PropertyDraft>) {
+    console.log("All new updates:", updates);
+}
+
+updateByBuilder({
+    plotNo: 5,
+    address: "Ultinagar, Chouras Baug"
+});
+```
+
+The resulting type is equivalent to:
+
+```ts
+type CompleteProperty = {
+    plotNo: number;
+    address: string;
+};
+```
+
+If either property is missing, TypeScript reports an error.
+
+#### Important distinction
+
+Your original `PropertyLand` type already required both properties. Applying `Required<PropertyLand>` would not change that type.
+
+`Required<T>` is most useful when the original type contains optional properties.
+
+### `Pick<T, K>`
+
+`Pick<T, K>` selects specific properties from an existing type.
+
+```ts
+type User = {
+    name: string;
+    email: string;
+    password: string;
+};
+
+type UpdateUser = Pick<User, "name" | "email">;
+
+const data: UpdateUser = {
+    name: "Hello",
+    email: "ace@gmail.com"
+};
+```
+
+`UpdateUser` contains only `name` and `email`.
+
+Both properties remain required because `Pick` preserves their original optional or required status.
+
+#### Making the selected properties optional
+
+If we want to update either the name, the email, or both, we can combine `Pick` with `Partial`.
+
+```ts
+type UpdateUser = Partial<Pick<User, "name" | "email">>;
+```
+
+This is equivalent to:
+
+```ts
+type UpdateUser = {
+    name?: string;
+    email?: string;
+};
+```
+
+The order matters conceptually:
+
+1. `Pick` selects which properties are allowed.
+2. `Partial` makes those selected properties optional.
+
+This is useful when creating separate input types for user creation and profile updates.
+
+### `Omit<T, K>`
+
+`Omit<T, K>` creates a type by excluding specified properties from an existing type.
+
+```ts
+type GeneralUpdate = Partial<Omit<User, "password">>;
+```
+
+First, `Omit<User, "password">` removes the `password` property.
+
+The resulting type is:
+
+```ts
+type GeneralUpdate = {
+    name: string;
+    email: string;
+};
+```
+
+Then, `Partial` makes both remaining properties optional:
+
+```ts
+type GeneralUpdate = {
+    name?: string;
+    email?: string;
+};
+```
+
+Now the general update type permits changing the name, the email, or both, without including a password field.
+
+This is useful when designing separate types for different operations.
+
+**Security note:** TypeScript types alone do not prevent a client from sending extra fields at runtime. API handlers must validate incoming data and explicitly control which fields can be changed.
+
+### Quick Reference
+
+| Utility type  | Purpose                       |
+| ------------- | ----------------------------- |
+| `Partial<T>`  | Makes all properties optional |
+| `Required<T>` | Makes all properties required |
+| `Pick<T, K>`  | Selects specified properties  |
+| `Omit<T, K>`  | Excludes specified properties |
