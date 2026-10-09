@@ -562,3 +562,188 @@ never
 
 This alerts us that we need to add handling for the new role.
 
+## Interfaces, Intersections, and Property Modifiers
+
+### Interfaces
+
+An `interface` defines a contract that describes the properties and methods an object should have. When a class implements an interface, it must satisfy that contract.
+
+Interfaces are commonly used to define contracts for classes.
+
+```ts
+interface OrderStatus {
+    status: "received" | "cooking" | "served";
+}
+```
+
+Here, `OrderStatus` requires an object to have a `status` property whose value must be one of the three specified strings.
+
+#### Using interfaces with classes
+
+```ts
+type FoodOrder = {
+    id: number;
+    item: string;
+};
+
+interface OrderStatus {
+    status: "received" | "cooking" | "served";
+}
+
+class Order implements FoodOrder, OrderStatus {
+    id = 12940;
+    item = "Chinese";
+    status: "received" | "cooking" | "served" = "received";
+}
+```
+
+* `implements` checks whether the class satisfies the specified type contracts.
+* A class can implement multiple interfaces or object-shaped type aliases.
+* Using an `interface` for a class contract is a common convention, but it is not mandatory.
+* Use the primitive type `number` rather than the wrapper type `Number`.
+
+#### Why can't a class implement a union of object types?
+
+```ts
+type Response =
+    | { ok: "send" }
+    | { ok: "don't send" };
+```
+
+This is a union type. It describes two alternative object shapes.
+
+A class cannot directly implement this union:
+
+```ts
+// Invalid
+class MyResponse implements Response {}
+```
+
+Instead, use the union as a type for a value or property, or define an interface if the class needs a contract.
+
+```ts
+interface Response {
+    ok: "send" | "don't send";
+}
+
+class MyResponse implements Response {
+    ok: "send" | "don't send" = "send";
+}
+```
+
+**Remember:** `implements` checks whether a class instance satisfies a type's structure. It does not require that structure to be declared using `interface`, but a union type cannot be implemented directly.
+
+---
+
+### Intersection Types (`&`)
+
+An intersection combines multiple type requirements. A value must satisfy all the combined types.
+
+```ts
+type ResponseBody = {
+    body: string;
+};
+
+type ResponseStatus = {
+    status: "success" | "error";
+};
+
+type NewResponse = ResponseBody & ResponseStatus;
+```
+
+`NewResponse` requires both the `body` and `status` properties.
+
+```ts
+function createResponse(obj: NewResponse) {
+    console.log(obj.body);
+    console.log(obj.status);
+}
+
+createResponse({
+    body: "Order created",
+    status: "success"
+});
+```
+
+#### Why use intersections?
+
+Intersections are useful when existing types need to be combined into a new type without repeating their properties.
+
+For example, `ResponseBody` and `ResponseStatus` can be defined independently and then combined into `NewResponse`.
+
+**Remember:**
+
+* `|` means OR: one of the alternatives.
+* `&` means AND: all the type requirements must be satisfied.
+
+---
+
+### Property Modifiers: `readonly` and Optional Properties (`?`)
+
+Property modifiers change how a property can be used.
+
+#### The `readonly` modifier
+
+The `readonly` modifier prevents a property from being reassigned after initialization.
+
+```ts
+type Config = {
+    readonly id: number;
+    appName: string;
+    version: number;
+    description?: string;
+};
+
+const newConfig: Config = {
+    id: 123455,
+    appName: "New App",
+    version: 1
+};
+```
+
+The following assignments are allowed:
+
+```ts
+newConfig.appName = "Updated App";
+newConfig.version = 2;
+```
+
+But this assignment produces a TypeScript error:
+
+```ts
+newConfig.id = 999; // Error: id is readonly
+```
+
+**Important:** `readonly` prevents reassignment through the TypeScript type system. It does not make an object deeply immutable at runtime.
+
+#### Optional properties (`?`)
+
+The `?` modifier makes a property optional.
+
+```ts
+type Config = {
+    appName: string;
+    description?: string;
+};
+```
+
+Both objects are valid:
+
+```ts
+const config1: Config = {
+    appName: "New App"
+};
+
+const config2: Config = {
+    appName: "New App",
+    description: "An application"
+};
+```
+
+If `description` is provided, it must be a string.
+
+When reading an optional property, its value may be `undefined`:
+
+```ts
+console.log(config1.description); // undefined
+```
