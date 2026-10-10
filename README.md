@@ -1045,3 +1045,122 @@ This is useful when designing separate types for different operations.
 | `Required<T>` | Makes all properties required |
 | `Pick<T, K>`  | Selects specified properties  |
 | `Omit<T, K>`  | Excludes specified properties |
+
+## Functions
+
+### Declaring Types Inline
+
+We can define the types of function parameters directly when declaring the function.
+
+```ts
+function createOrder(id: number, name: string, quantity: number) {
+    return {
+        id,
+        name,
+        quantity
+    };
+}
+```
+
+- `id: number` means the `id` parameter must be a number.
+- `name: string` means the `name` parameter must be a string.
+- `quantity: number` means the `quantity` parameter must be a number.
+
+**When to use:** When the types are simple and only need to be declared for that function.
+
+TypeScript can infer the return type from the returned object. In this example, it infers an object containing `id`, `name`, and `quantity` with their respective types.
+
+### Declaring Types Separately and Reusing Them
+
+Instead of declaring an object's structure repeatedly, we can define a reusable type using `type`.
+
+```ts
+type FoodOrder = {
+    id: number;
+    name: string;
+    quantity: number;
+};
+
+function createNewOrder(order: FoodOrder) {
+    return {
+        id: order.id,
+        name: order.name,
+        quantity: order.quantity
+    };
+}
+```
+
+- `FoodOrder` defines the expected structure of an order.
+- `order: FoodOrder` requires the argument to satisfy that structure.
+- We can reuse `FoodOrder` in multiple functions or variables.
+
+**When to use:** When an object structure is shared across different parts of the application, such as controllers, services, and database operations.
+
+**Important:** TypeScript uses structural typing. An object is compatible with `FoodOrder` when it has the required properties with compatible types; it does not need to be explicitly declared as a `FoodOrder` first.
+
+Also, prefer the primitive type `number` over the wrapper type `Number`.
+
+### Declaring Function Return Types
+
+We can explicitly specify what a function is expected to return.
+
+#### `void` — No meaningful return value
+
+```ts
+function printHello(): void {
+    console.log("Hello");
+}
+```
+
+`void` indicates that the function's return value is not intended to be used.
+
+Here, `console.log()` prints the message, but the function does not explicitly return a value.
+
+#### `number` — Returns a number
+
+```ts
+function addNum(a: number, b: number): number {
+    return a + b;
+}
+```
+
+The `: number` after the parameter list specifies the return type.
+
+TypeScript checks that the returned value is compatible with `number`.
+
+```ts
+addNum(5, 10);       // Valid
+addNum(5, "10");     // Error: string is not assignable to number
+```
+
+If we accidentally return a string from `addNum`, TypeScript reports a type error.
+
+### Type Inference vs. Explicit Return Types
+
+TypeScript can infer return types automatically:
+
+```ts
+function add(a: number, b: number) {
+    return a + b;
+}
+```
+
+The inferred return type is `number`.
+
+We can also declare it explicitly:
+
+```ts
+function add(a: number, b: number): number {
+    return a + b;
+}
+```
+
+Both work. Explicit return types can make a function's contract clearer and help catch incorrect return values. They are especially useful for exported functions, public APIs, and important application boundaries.
+
+### Key Takeaways
+
+- **Inline parameter types:** Useful for simple, function-specific parameters.
+- **Reusable object types:** Use `type` when an object structure needs to be shared.
+- **Return types:** Declare them after the parameter list, such as `: number` or `: void`.
+- **Type inference:** TypeScript can often determine return types without an explicit annotation.
+- **Compile-time checking:** TypeScript checks these type constraints during development and compilation; the annotations themselves do not validate external data at runtime.
