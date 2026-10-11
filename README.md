@@ -1164,3 +1164,220 @@ Both work. Explicit return types can make a function's contract clearer and help
 - **Return types:** Declare them after the parameter list, such as `: number` or `: void`.
 - **Type inference:** TypeScript can often determine return types without an explicit annotation.
 - **Compile-time checking:** TypeScript checks these type constraints during development and compilation; the annotations themselves do not validate external data at runtime.
+
+## Arrays, Tuples, Readonly Arrays, and Enums
+
+### Typed Arrays
+
+We can define the type of elements an array is allowed to contain.
+
+```ts
+const ages: number[] = [21, 22, 23, 20];
+const names: string[] = ["James", "Milly", "Mikey"];
+```
+
+- `number[]` means an array containing numbers.
+- `string[]` means an array containing strings.
+- TypeScript checks the element types during development.
+
+**Alternative syntax:**
+
+```ts
+const rating: Array<number> = [2.5, 4.5, 3.5];
+```
+
+`Array<number>` and `number[]` mean the same thing. The generic syntax (`Array<T>`) is useful when learning generics and working with more complex types.
+
+### Arrays with Custom Types
+
+We can create a custom type and use it to define the structure of each array element.
+
+```ts
+type Order = {
+    name: string;
+    quantity: number;
+};
+
+const orders: Order[] = [
+    { name: "Chinese", quantity: 2 },
+    { name: "Italian", quantity: 1 }
+];
+```
+
+Every element must satisfy the `Order` type.
+
+- `name` must be a string.
+- `quantity` must be a number.
+- Missing required properties or incorrect property types produce type errors.
+
+**Practical use:** Arrays of users, products, orders, transactions, or API response objects.
+
+### Readonly Arrays
+
+A readonly array prevents modifications to its array structure through that reference.
+
+```ts
+const dhabaOrder: readonly Order[] = [
+    { name: "Chinese", quantity: 2 },
+    { name: "Italian", quantity: 1 }
+];
+
+// dhabaOrder.push({ name: "Italian", quantity: 1 }); // Error
+```
+
+Operations that modify the array, such as `push()`, `pop()`, and `splice()`, are not permitted.
+
+However, `readonly` is shallow: it does not automatically make the objects inside the array readonly.
+
+```ts
+dhabaOrder[0].quantity = 5; // Allowed
+```
+
+The array structure is readonly, but the `Order` objects remain mutable.
+
+**Important:** `const` prevents reassignment of the variable; it does not prevent modifying an array. Use `readonly` when you want to prevent array mutations through a particular reference.
+
+### Two-Dimensional Arrays
+
+A two-dimensional array is an array containing other arrays.
+
+```ts
+const twoDArr: number[][] = [
+    [1, 2],
+    [3, 4]
+];
+```
+
+- The outer array contains arrays.
+- Each inner array contains numbers.
+- `number[][]` is equivalent to `Array<Array<number>>`.
+
+**Practical use:** Matrices, grids, tables, and graph representations.
+
+### Tuples
+
+A tuple is an array type with a defined structure, including the types and positions of its elements.
+
+```ts
+let tuple: [number, string, boolean?];
+
+tuple = [10, "Jshf"];
+tuple = [20, "Klmnp", true];
+```
+
+Here:
+- Position 0 must contain a number.
+- Position 1 must contain a string.
+- Position 2 may contain a boolean because `boolean?` is optional.
+
+Unlike a general array, a tuple defines the expected types at particular positions.
+
+#### Readonly tuples
+
+```ts
+let newTuple: readonly [number, string] = [2, ""];
+```
+
+The tuple cannot be modified through this reference using operations such as `push()` or by assigning a new value to an element.
+
+#### Named tuples
+
+```ts
+let newArr: [name: string, num: number];
+
+newArr = ["Ab", 1];
+```
+
+Named tuple elements make the intended meaning of each position clearer. The names are for readability and do not change the runtime representation.
+
+#### Important tuple limitation
+
+Tuples are arrays at runtime. A non-readonly tuple can accept operations such as `push()`.
+
+```ts
+let point: [number, number] = [10, 20];
+
+point.push(30); // Allowed by TypeScript
+```
+
+Although the tuple's declared structure contains two numbers, `push()` is permitted. This can make the actual array longer than its declared tuple shape.
+
+Use `readonly` tuples when the tuple's structure must not be modified.
+
+### Enums
+
+Enums represent a set of named choices.
+
+```ts
+const enum Status {
+    Pending = "pending",
+    Active = "active",
+    Done = "done",
+    Failed = "failed"
+}
+
+const orderStatus = Status.Pending;
+```
+
+Instead of passing arbitrary strings around, we can use the named members of `Status`.
+
+#### String enums
+
+In the example above, each member has an explicit string value. String enums do not automatically generate their values.
+
+#### Numeric enums
+
+```ts
+enum Priority {
+    Low,
+    Medium,
+    High
+}
+```
+
+Numeric enums automatically assign incrementing values when no initial values are specified:
+
+- `Low` = `0`
+- `Medium` = `1`
+- `High` = `2`
+
+You can also assign explicit numeric values.
+
+#### Using enums in functions
+
+```ts
+enum Status {
+    Pending = "pending",
+    Active = "active",
+    Done = "done"
+}
+
+function updateStatus(status: Status): void {
+    console.log(status);
+}
+
+updateStatus(Status.Pending);
+```
+
+The parameter is typed as `Status`, restricting the accepted choices to the enum's members.
+
+#### Note on `const enum`
+
+A `const enum` is generally inlined by the TypeScript compiler rather than emitted as a regular runtime enum object. Its behaviour depends on the compilation setup, so ordinary `enum` is often easier when learning or when runtime access to the enum object is needed.
+
+For simple sets of string choices, a string-literal union is another option:
+
+```ts
+type Status = "pending" | "active" | "done" | "failed";
+```
+
+### Key Takeaways
+
+- `number[]` and `Array<number>` describe arrays containing numbers.
+- `Order[]` describes arrays whose elements follow a custom type.
+- `readonly` prevents mutation through the readonly reference; it does not automatically freeze nested objects.
+- `number[][]` describes a two-dimensional number array.
+- Tuples define element types by position; optional tuple elements are allowed.
+- Named tuples improve readability.
+- Non-readonly tuples can still be extended using methods such as `push()`.
+- Enums define named choices, while string-literal unions offer another way to restrict values.
