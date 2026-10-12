@@ -1381,3 +1381,316 @@ type Status = "pending" | "active" | "done" | "failed";
 - Named tuples improve readability.
 - Non-readonly tuples can still be extended using methods such as `push()`.
 - Enums define named choices, while string-literal unions offer another way to restrict values.
+
+## Classes, Access Modifiers, Inheritance & Composition
+
+### Classes and Objects
+
+A **class** is a blueprint for creating objects. An object is an instance of a class containing its own data and behavior.
+
+```ts
+class BankAccount {
+    accountHolder: string;
+    balance: number;
+
+    constructor(accountHolder: string, balance: number = 0) {
+        this.accountHolder = accountHolder;
+        this.balance = balance;
+    }
+}
+
+const account = new BankAccount("Sumanraj", 1000);
+```
+
+- `class` defines the blueprint.
+- `constructor()` initializes a new object.
+- `this` refers to the current instance.
+- `new` creates an instance of the class.
+- `balance: number = 0` provides a default value when no balance is supplied.
+
+### Access Modifiers
+
+Access modifiers control where class properties and methods can be accessed.
+
+| Modifier | Inside class | Subclass | Outside class |
+|---|---|---|---|
+| `public` | Yes | Yes | Yes |
+| `protected` | Yes | Yes | No |
+| `private` | Yes | No | No |
+| `#` private field | Yes | No direct access | No |
+
+#### `public`
+
+Members are accessible everywhere. `public` is the default for class members in TypeScript.
+
+```ts
+class BankAccount {
+    public accountHolder: string;
+
+    constructor(accountHolder: string) {
+        this.accountHolder = accountHolder;
+    }
+}
+
+const account = new BankAccount("Sumanraj");
+console.log(account.accountHolder);
+```
+
+You can omit `public` because it is the default.
+
+#### `private`
+
+A TypeScript `private` member is accessible only inside the class that declares it.
+
+```ts
+class BankAccount {
+    private balance: number = 0;
+
+    getBalance() {
+        return this.balance;
+    }
+}
+
+const account = new BankAccount();
+
+// TypeScript error:
+// console.log(account.balance);
+console.log(account.getBalance());
+```
+
+TypeScript prevents direct access during type checking. Its `private` modifier is not a runtime security boundary; ordinary TypeScript `private` properties generally become regular JavaScript properties.
+
+#### `protected`
+
+A `protected` member is accessible inside the declaring class and its subclasses, but not through an instance from outside.
+
+```ts
+class BankAccount {
+    protected balance: number = 0;
+}
+
+class StocksPortfolio extends BankAccount {
+    showBalance() {
+        return this.balance;
+    }
+}
+
+const portfolio = new StocksPortfolio();
+console.log(portfolio.showBalance());
+
+// TypeScript error:
+// console.log(portfolio.balance);
+```
+
+Use `protected` when subclasses need access to a member but outside code should not access it directly.
+
+#### `#` — JavaScript private fields
+
+The `#` prefix creates a genuine JavaScript private field, enforced at runtime.
+
+```ts
+class BankAccount {
+    #balance: number = 0;
+
+    getBalance() {
+        return this.#balance;
+    }
+}
+
+const account = new BankAccount();
+console.log(account.getBalance());
+
+// Error: private field cannot be accessed outside the class.
+// console.log(account.#balance);
+```
+
+Even a subclass cannot access the parent's `#balance` directly. It must use an accessible public or protected method provided by the parent.
+
+**Remember the distinction:** TypeScript `private` is primarily a type-checking restriction; `#` is enforced by JavaScript at runtime.
+
+### Getters and Setters
+
+Getters and setters let you interact with a property while controlling how its value is read or changed.
+
+```ts
+class BankAccount {
+    protected balance: number = 0;
+
+    get getBalance() {
+        return this.balance;
+    }
+
+    set setBalance(amount: number) {
+        this.balance += amount;
+    }
+}
+
+const account = new BankAccount();
+
+account.setBalance = 500;
+console.log(account.getBalance); // 500
+
+account.setBalance = 200;
+console.log(account.getBalance); // 700
+```
+
+- `get` defines a getter that runs when the property is read.
+- `set` defines a setter that runs when the property is assigned.
+- Getters are accessed without parentheses.
+- Setters accept exactly one parameter.
+
+In this example, the setter **adds** to the balance rather than replacing it. A regular method such as `deposit(amount)` would communicate that operation more clearly.
+
+A conventional getter and setter would look like this:
+
+```ts
+get balanceValue() {
+    return this.balance;
+}
+
+set balanceValue(amount: number) {
+    this.balance = amount;
+}
+```
+
+Now `account.balanceValue = 500` replaces the balance instead of incrementing it.
+
+### `static` — Members Belonging to the Class
+
+A `static` property or method belongs to the class itself, not to an individual instance.
+
+```ts
+class BankAccount {
+    static bankName: string = "Example Bank";
+
+    static showBankName() {
+        return BankAccount.bankName;
+    }
+}
+
+console.log(BankAccount.bankName);
+console.log(BankAccount.showBankName());
+```
+
+You access static members using the class name.
+
+A static member is not accessed through an ordinary instance:
+
+```ts
+const account = new BankAccount();
+
+// Do not use account.bankName to access the static property.
+```
+
+#### Static counter example
+
+```ts
+class BankAccount {
+    static totalAccounts: number = 0;
+
+    constructor() {
+        BankAccount.totalAccounts++;
+    }
+}
+
+const account1 = new BankAccount();
+const account2 = new BankAccount();
+
+console.log(BankAccount.totalAccounts); // 2
+```
+
+Here, `totalAccounts` is shared at the class level rather than stored separately on each account.
+
+**Use `static`** for class-level information or operations, such as counters, utility methods, or shared configuration.
+
+### Inheritance — `extends` and `super()`
+
+Inheritance allows a child class to reuse and extend the behavior of a parent class.
+
+```ts
+class BankAccount {
+    constructor(
+        protected accountHolder: string,
+        protected balance: number = 0
+    ) {}
+
+    get holderName() {
+        return this.accountHolder;
+    }
+
+    get getBalance() {
+        return this.balance;
+    }
+}
+
+class StocksPortfolio extends BankAccount {
+    constructor(accountHolder: string, balance: number = 0) {
+        super(accountHolder, balance);
+    }
+}
+
+const portfolio = new StocksPortfolio("Sumanraj", 5000);
+
+console.log(portfolio.holderName);
+console.log(portfolio.getBalance);
+```
+
+- `extends` establishes the inheritance relationship.
+- `super(accountHolder, balance)` calls the parent constructor.
+- The parent constructor initializes the inherited fields.
+- `StocksPortfolio` inherits the parent's accessible members.
+
+A subclass cannot access the parent's `private` members or `#` fields directly.
+
+**Concept:** `StocksPortfolio` *is a* `BankAccount` in this inheritance model.
+
+### Composition — Passing an Object to Another Class
+
+Composition is a way for one object to contain or refer to another object.
+
+```ts
+type FDinfo = {
+    years: number;
+    amount: number;
+};
+
+class FD {
+    protected fds: FDinfo[] = [];
+
+    constructor(private account: BankAccount) {}
+
+    set newFd(value: FDinfo) {
+        this.fds.push(value);
+    }
+
+    get allFDs() {
+        return this.fds;
+    }
+
+    get accountHolder() {
+        return this.account.holderName;
+    }
+}
+```
+
+Create the objects:
+
+```ts
+const account = new BankAccount("Sumanraj", 5000);
+const fd = new FD(account);
+
+fd.newFd = { years: 2, amount: 2000 };
+
+console.log(fd.accountHolder);
+console.log(fd.allFDs);
+```
+
+The constructor parameter `private account: BankAccount` is a **parameter property**. TypeScript automatically declares a private field and assigns the supplied object to it.
+
+The `FD` object now holds a reference to the same account object. It does not create a copy.
+
+In contrast, a constructor written as `constructor(account: BankAccount) {}` accepts the object but does not retain the reference unless you assign it to a field.
+
+**Concept:** `FD` *has a reference to* a `BankAccount`. The two objects have separate responsibilities and data.
+
+Passing the account does not automatically deduct money from its balance. That behavior must be implemented explicitly.
