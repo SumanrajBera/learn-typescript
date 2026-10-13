@@ -633,7 +633,128 @@ class MyResponse implements Response {
 
 **Remember:** `implements` checks whether a class instance satisfies a type's structure. It does not require that structure to be declared using `interface`, but a union type cannot be implemented directly.
 
----
+### Defining Object Contracts with Interfaces
+
+An `interface` can describe the properties and methods an object must contain. When an object is assigned to that interface type, TypeScript checks whether it satisfies the contract.
+
+```ts
+interface FoodOrder {
+    name: string;
+    quantity: number;
+    serveFood(): void;
+}
+
+const newOrder: FoodOrder = {
+    name: "Italian",
+    quantity: 2,
+    serveFood() {
+        console.log("Food is served");
+    }
+};
+```
+
+- `name` must be a string.
+- `quantity` must be a number.
+- `serveFood()` must be a method that returns `void`.
+
+**Remember:** An interface can describe both data properties and method signatures. The object provides the actual method implementation.
+
+### Index Signatures
+
+An index signature allows an object to contain properties with dynamic keys, provided those keys and their values follow specified types.
+
+```ts
+interface MenuInfo {
+    [name: string]: number;
+}
+
+const menu: MenuInfo = {
+    chinese: 245789,
+    italian: 597893
+};
+
+console.log(menu.chinese);
+```
+
+- `[name: string]` means property keys must be strings.
+- `number` means every property's value must be a number.
+- Property names such as `chinese` and `italian` do not need to be declared individually in advance.
+
+An invalid value produces a type error:
+
+```ts
+const menu: MenuInfo = {
+    chinese: "245789" // Error: string is not assignable to number
+};
+```
+
+**Important:** JavaScript objects cannot contain duplicate own property names as separate entries. If the same key is written twice in an object literal, JavaScript normally keeps the last value. TypeScript's index signature does not enforce unique keys in that sense.
+
+### Declaration Merging
+
+When multiple interfaces with the same name are declared in the same scope, TypeScript automatically merges their members into a single interface.
+
+```ts
+interface User {
+    name: string;
+}
+
+interface User {
+    age: number;
+}
+
+const newUser: User = {
+    name: "Samuel",
+    age: 22
+};
+```
+
+After declaration merging, `User` requires both `name` and `age`.
+
+This behavior is called **declaration merging**.
+
+- All declarations must use the same interface name and be in a compatible scope.
+- Conflicting declarations can produce compilation errors.
+- This differs from type aliases, which cannot be redeclared using the same name in the same scope.
+
+Declaration merging is useful when extending existing interfaces, including interfaces exposed by libraries or other parts of an application.
+
+### Extending Interfaces
+
+An interface can extend one or more existing interfaces to inherit their properties and methods.
+
+```ts
+interface A {
+    a: string;
+}
+
+interface B {
+    b: string;
+}
+
+interface C extends A, B {
+    c: string;
+}
+
+const newLetter: C = {
+    a: "",
+    b: "",
+    c: ""
+};
+```
+
+Here, `C` inherits the requirements of both `A` and `B`, then adds its own property, `c`.
+
+Therefore, an object of type `C` must contain all three properties: `a`, `b`, and `c`.
+
+An interface can extend multiple interfaces by separating their names with commas.
+
+**Declaration merging vs. extending**
+
+- **Declaration merging:** Multiple declarations with the same interface name are combined automatically.
+- **Extending:** A new interface explicitly inherits from one or more existing interfaces using `extends`.
+
+Both approaches let you build upon existing contracts, but they serve different purposes.
 
 ### Intersection Types (`&`)
 
