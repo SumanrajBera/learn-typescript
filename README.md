@@ -1815,3 +1815,157 @@ In contrast, a constructor written as `constructor(account: BankAccount) {}` acc
 **Concept:** `FD` *has a reference to* a `BankAccount`. The two objects have separate responsibilities and data.
 
 Passing the account does not automatically deduct money from its balance. That behavior must be implemented explicitly.
+
+## Generics
+
+Generics allow us to write reusable code that works with different types while preserving type safety.
+
+Instead of accepting a specific type or using `any`, we can use a **type parameter** that TypeScript determines or infers when the code is used.
+
+### Basic Generics
+
+```ts
+function displayContent<T>(content: T): void {
+    console.log(content);
+}
+
+displayContent(1);
+displayContent("String");
+displayContent(true);
+```
+
+- `<T>` declares a generic type parameter.
+- `content: T` means the parameter has the type represented by `T`.
+- TypeScript infers `T` from the argument passed to the function.
+
+In the examples above, `T` is inferred as `number`, `string`, and `boolean`, respectively.
+
+**Remember:** `T` is not a special keyword. It is a conventional name for a type parameter. You could use another name, such as `Value`.
+
+Generics are useful when a function should accept different types without losing information about the type it receives.
+
+### Multiple Generic Type Parameters
+
+A function can have multiple generic type parameters when it needs to work with multiple values whose types may differ.
+
+```ts
+function returnArr<A, B>(a: A, b: B): [A, B] {
+    return [a, b];
+}
+
+const result = returnArr("Pizza", 2);
+// Inferred type: [string, number]
+```
+
+- `<A, B>` declares two independent type parameters.
+- `a: A` and `b: B` associate each parameter with its respective type.
+- `[A, B]` is a tuple return type that preserves the types and order of both elements.
+
+For example, returning `[b, a]` would cause a type error because the declared return type requires the first element to have type `A` and the second to have type `B`, assuming those types are incompatible.
+
+**Use case:** Generics are useful when combining values of different types while preserving the relationship between the input and output types.
+
+### Explicitly Providing Generic Types
+
+TypeScript can usually infer generic types from function arguments, but we can also specify them explicitly.
+
+```ts
+function displayContent<T>(content: T): T {
+    return content;
+}
+
+const result = displayContent<number>(100);
+```
+
+Here, `<number>` explicitly tells TypeScript that `T` is `number`.
+
+Notice that the return type is `T` instead of `void`. The function returns the original value, so the caller retains its type information.
+
+### Generics with API Responses
+
+Generics are useful for defining reusable API response structures when different endpoints return different data.
+
+```ts
+interface ApiResponse<T> {
+    success: boolean;
+    data: T;
+}
+
+interface User {
+    id: number;
+    name: string;
+}
+
+interface Product {
+    id: number;
+    price: number;
+}
+
+const userResponse: ApiResponse<User> = {
+    success: true,
+    data: {
+        id: 1,
+        name: "Samuel"
+    }
+};
+
+const productResponse: ApiResponse<Product> = {
+    success: true,
+    data: {
+        id: 101,
+        price: 500
+    }
+};
+```
+
+Instead of creating separate response interfaces for users and products, we reuse `ApiResponse<T>` with different types.
+
+- `ApiResponse<User>` means `data` must have the structure of `User`.
+- `ApiResponse<Product>` means `data` must have the structure of `Product`.
+
+This makes generic types particularly useful for API response wrappers, pagination results, reusable repository methods, and utility functions.
+
+### Generics and `unknown` in API Responses
+
+When data comes from an external API, its actual structure may not be known or validated yet.
+
+The `unknown` type represents a value whose type must be checked before it can be safely used.
+
+```ts
+async function fetchData(): Promise<unknown> {
+    const response = await fetch("/api/user");
+    return response.json();
+}
+```
+
+The returned value is treated as `unknown`, so TypeScript will not let us access properties on it without first narrowing or validating its type.
+
+Generics can help us describe the expected structure:
+
+```ts
+async function fetchData<T>(url: string): Promise<T> {
+    const response = await fetch(url);
+    return response.json() as Promise<T>;
+}
+
+interface User {
+    id: number;
+    name: string;
+}
+
+const user = await fetchData<User>("/api/user");
+console.log(user.name);
+```
+
+Here, `fetchData<User>()` tells TypeScript to treat the result as a `User`.
+
+**Important:** This generic function does not validate the actual API response at runtime. The assertion only informs TypeScript of the expected type. If the server returns malformed data, the compiler will not detect it. For untrusted API data, use runtime validation, such as Zod, or return `unknown` and validate the result before using it.
+
+### Key Takeaways
+
+- Generics make functions, interfaces, and classes reusable across multiple types.
+- Type parameters preserve relationships between inputs and outputs.
+- TypeScript often infers generic types automatically.
+- Multiple generic parameters can represent values with different types.
+- Generics describe expected types; they do not validate runtime data.
+- Use `unknown` when the actual type of incoming data has not yet been established.
